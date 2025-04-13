@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe 5x5</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        table { margin: auto; border-collapse: collapse; }
+        td {
+            width: 80px; height: 80px; font-size: 36px; text-align: center;
+            border: 2px solid black; cursor: pointer;
+        }
+        td:hover { background-color: #f0f0f0; }
+        button, select { margin-top: 20px; padding: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe 5x5</h1>
+
+    <label for="mode">เลือกโหมด:</label>
+    <select id="mode">
+        <option value="PvAI" selected>Player vs AI</option>
+        <option value="PvP">Player vs Player</option>
+    </select>
+
+    <table>
+        <tbody>
+            {% for i in range(5) %}
+            <tr>
+                {% for j in range(5) %}
+                <td onclick="makeMove({{ i }}, {{ j }})" id="cell-{{ i }}-{{ j }}"></td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <button onclick="resetGame()">Reset</button>
+
+    <script>
+        let gameMode = "PvAI";
+
+        document.getElementById("mode").addEventListener("change", function() {
+            gameMode = this.value;
+            fetch("/set_mode", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: gameMode })
+            });
+            resetGame();
+        });
+
+        function makeMove(row, col) {
+            fetch("/move", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ row: row, col: col })
+            })
+            .then(response => response.json())
+            .then(data => updateBoard(data));
+        }
+
+        function resetGame() {
+            fetch("/reset", { method: "POST" })
+            .then(response => response.json())
+            .then(data => updateBoard(data));
+        }
+
+        function updateBoard(data) {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 5; j++) {
+                    document.getElementById(`cell-${i}-${j}`).textContent = data.board[i][j];
+                }
+            }
+            if (data.winner) {
+                setTimeout(() => alert(data.winner === "draw" ? "It's a draw!" : data.winner + " wins!"), 100);
+            }
+        }
+    </script>
+</body>
+</html>
